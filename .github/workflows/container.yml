@@ -27,12 +27,11 @@ jobs:
       RAW_REF_NAME: ${{ github.event.pull_request.head.ref || github.ref }}
 
     steps:
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+      #- name: Set up QEMU
+      #  uses: docker/setup-qemu-action@v2
 
-      - name: Set up Docker Buildx
-        id: buildx
-        uses: docker/setup-buildx-action@v2.2.1
+      - name: Install earthly
+        uses: earthly/setup-earthly@v1
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v2
@@ -54,17 +53,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           CONTAINER_TAG=$(echo "${RAW_CONTAINER_TAG:0:128}" | sed 's/[^a-zA-Z0-9]\+/-/g')
-          REF_NAME=$(echo "$RAW_REF_NAME" | sed -r 's#^refs/(heads|tags)/##')
-          docker buildx build \
-            --platform "$BUILD_PLATFORMS" \
-            --tag "$CONTAINER_NAME:$CONTAINER_TAG" \
-            --label "org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}" \
-            --label "org.opencontainers.image.documentation=${{ github.server_url }}/${{ github.repository }}" \
-            --label "org.opencontainers.image.url=${{ github.server_url }}/${{ github.repository }}/packages" \
-            --label "org.opencontainers.image.ref.name=$REF_NAME" \
-            --label "org.opencontainers.image.revision=${{ github.sha }}" \
-            --label "org.opencontainers.image.vendor=${{ github.repository_owner }}" \
-            --label "org.opencontainers.image.created=$(date -u --rfc-3339=seconds)" \
-            --cache-from type=gha \
-            --cache-to type=gha,mode=max \
-            --pull ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && '--push' || '' }} mastodon
+
+          earthy build ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && '--push' || '' }} \
+            +all --CONTAINER_TAG="$CONTAINER_TAG"
